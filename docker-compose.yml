@@ -27,6 +27,7 @@ services:
     network_mode: host
     volumes:
       - ~/.hermes:/opt/data
+      - /Users/yaronel/.opencode:/Users/yaronel/.opencode:ro
     environment:
       - HERMES_UID=${HERMES_UID:-10000}
       - HERMES_GID=${HERMES_GID:-10000}
@@ -50,3 +51,13 @@ services:
       - HERMES_GID=${HERMES_GID:-10000}
     # Localhost-only. For remote access, tunnel via `ssh -L 9119:localhost:9119`.
     command: ["dashboard", "--host", "127.0.0.1", "--no-open"]
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ~/.hermes/searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/

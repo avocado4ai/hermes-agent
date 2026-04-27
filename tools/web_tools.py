@@ -80,6 +80,61 @@ def _load_web_config() -> dict:
     except (ImportError, Exception):
         return {}
 
+
+def _load_auxiliary_web_search_config() -> dict:
+    """Load the ``auxiliary.web_search`` section from config.yaml."""
+    try:
+        from hermes_cli.config import load_config
+        return load_config().get("auxiliary", {}).get("web_search", {})
+    except (ImportError, Exception):
+        return {}
+
+
+def _get_searxng_url() -> str:
+    """Return SearXNG base URL from auxiliary.web_search.base_url or SEARXNG_URL env var."""
+    env_url = os.getenv("SEARXNG_URL", "").strip().rstrip("/")
+    if env_url:
+        return env_url
+    cfg = _load_auxiliary_web_search_config()
+    if cfg.get("provider", "").lower() == "searxng":
+        return cfg.get("base_url", "").rstrip("/")
+    return ""
+
+
+def _is_searxng_configured() -> bool:
+    return bool(_get_searxng_url())
+
+
+def _searxng_search(query: str, limit: int = 5) -> dict:
+    """Search via a self-hosted SearXNG JSON API."""
+    import urllib.request
+    import urllib.parse
+
+    base_url = _get_searxng_url()
+    cfg = _load_auxiliary_web_search_config()
+    timeout = int(cfg.get("timeout", 30))
+
+    params = urllib.parse.urlencode({
+        "q": query,
+        "format": "json",
+        "categories": "general",
+    })
+    url = f"{base_url}/search?{params}"
+    req = urllib.request.Request(url, headers={"User-Agent": "Hermes-Agent/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data = json.loads(resp.read().decode())
+
+    web = []
+    for i, r in enumerate(data.get("results", [])[:limit]):
+        web.append({
+            "title": r.get("title", ""),
+            "url": r.get("url", ""),
+            "description": r.get("content", ""),
+            "position": i + 1,
+        })
+    return {"success": True, "data": {"web": web}}
+
+
 def _get_backend() -> str:
     """Determine which web backend to use.
 
@@ -88,8 +143,12 @@ def _get_backend() -> str:
     keys manually without running setup.
     """
     configured = (_load_web_config().get("backend") or "").lower().strip()
-    if configured in ("parallel", "firecrawl", "tavily", "exa"):
+    if configured in ("parallel", "firecrawl", "tavily", "exa", "searxng"):
         return configured
+
+    # Check auxiliary.web_search.provider for searxng
+    if _is_searxng_configured():
+        return "searxng"
 
     # Fallback for manual / legacy config — pick the highest-priority
     # available backend. Firecrawl also counts as available when the managed
@@ -117,6 +176,8 @@ def _is_backend_available(backend: str) -> bool:
         return check_firecrawl_api_key()
     if backend == "tavily":
         return _has_env("TAVILY_API_KEY")
+    if backend == "searxng":
+        return _is_searxng_configured()
     return False
 
 # ─── Firecrawl Client ────────────────────────────────────────────────────────
@@ -1084,6 +1145,15 @@ def web_search_tool(query: str, limit: int = 5) -> str:
 
         # Dispatch to the configured backend
         backend = _get_backend()
+        if backend == "searxng":
+            response_data = _searxng_search(query, limit)
+            debug_call_data["results_count"] = len(response_data.get("data", {}).get("web", []))
+            result_json = json.dumps(response_data, indent=2, ensure_ascii=False)
+            debug_call_data["final_response_size"] = len(result_json)
+            _debug.log_call("web_search_tool", debug_call_data)
+            _debug.save()
+            return result_json
+
         if backend == "parallel":
             response_data = _parallel_search(query, limit)
             debug_call_data["results_count"] = len(response_data.get("data", {}).get("web", []))
@@ -1922,8 +1992,10 @@ def check_firecrawl_api_key() -> bool:
 def check_web_api_key() -> bool:
     """Check whether the configured web backend is available."""
     configured = _load_web_config().get("backend", "").lower().strip()
-    if configured in ("exa", "parallel", "firecrawl", "tavily"):
+    if configured in ("exa", "parallel", "firecrawl", "tavily", "searxng"):
         return _is_backend_available(configured)
+    if _is_searxng_configured():
+        return True
     return any(_is_backend_available(backend) for backend in ("exa", "parallel", "firecrawl", "tavily"))
 
 

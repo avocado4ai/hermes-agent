@@ -14,7 +14,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/hermes/.playwright
 # that would otherwise accumulate when hermes runs as PID 1. See #15012.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        build-essential nodejs npm python3 ripgrep ffmpeg gcc python3-dev libffi-dev procps git openssh-client docker-cli tini && \
+        build-essential nodejs npm python3 ripgrep ffmpeg gcc python3-dev libffi-dev procps git openssh-client docker-cli tini expect && \
     rm -rf /var/lib/apt/lists/*
 
 # Non-root user for runtime; UID can be overridden via HERMES_UID at runtime
@@ -41,7 +41,11 @@ RUN npm install --prefer-offline --no-audit && \
 COPY --chown=hermes:hermes . .
 
 # Build web dashboard (Vite outputs to hermes_cli/web_dist/)
-RUN cd web && npm run build
+# Fix esbuild binary/host version mismatch that occurs with cached node_modules
+RUN cd web && \
+    rm -rf node_modules/esbuild && \
+    npm install --save-dev esbuild@latest && \
+    npm run build
 
 # ---------- Permissions ----------
 # Make install dir world-readable so any HERMES_UID can read it at runtime.
