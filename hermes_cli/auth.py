@@ -928,7 +928,7 @@ def resolve_provider(
         "kilo": "kilocode", "kilo-code": "kilocode", "kilo-gateway": "kilocode",
         # Local server aliases — route through the generic custom provider
         "lmstudio": "custom", "lm-studio": "custom", "lm_studio": "custom",
-        "ollama": "custom", "vllm": "custom", "llamacpp": "custom",
+        "ollama": "ollama", "vllm": "custom", "llamacpp": "custom",
         "llama.cpp": "custom", "llama-cpp": "custom",
     }
     normalized = _PROVIDER_ALIASES.get(normalized, normalized)
@@ -937,6 +937,8 @@ def resolve_provider(
         return "openrouter"
     if normalized == "custom":
         return "custom"
+    if normalized == "ollama":
+        return "ollama"  # Special handling in runtime_provider
     if normalized in PROVIDER_REGISTRY:
         return normalized
     if normalized != "auto":

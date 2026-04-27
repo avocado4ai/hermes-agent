@@ -603,6 +603,48 @@ def _resolve_explicit_runtime(
             "requested_provider": requested_provider,
         }
 
+    # ── Ollama provider ───────────────────────────────────────────────
+    if provider == "ollama":
+        # Try hosts from env, then defaults in priority order
+        ollama_hosts = os.getenv("OLLAMA_HOSTS", "").strip()
+        if ollama_hosts:
+            hosts = [h.strip() for h in ollama_hosts.split(",") if h.strip()]
+        else:
+            hosts = ["http://192.168.1.118:11434", "http://100.127.199.8:11434", "http://localhost:11434"]
+
+        # Try each host until one responds
+        for host in hosts:
+            base_url = host.rstrip("/")
+            if not base_url.startswith("http"):
+                base_url = f"http://{base_url}"
+            try:
+                import requests as _req
+                test_url = f"{base_url}/api/tags"
+                resp = _req.get(test_url, timeout=2)
+                if resp.status_code == 200:
+                    effective_base_url = f"{base_url}/v1"
+                    model_name = model_cfg.get("model", "").strip() or model_cfg.get("default", "").strip() or "gemma4:latest"
+                    return {
+                        "provider": "ollama",
+                        "api_mode": "chat_completions",
+                        "base_url": effective_base_url,
+                        "api_key": explicit_api_key or "ollama",
+                        "model": model_name,
+                        "source": "explicit",
+                        "requested_provider": requested_provider,
+                    }
+            except Exception:
+                continue
+        # No hosts available - return error info
+        return {
+            "provider": "ollama",
+            "api_mode": "chat_completions",
+            "base_url": "",
+            "api_key": "",
+            "source": "explicit",
+            "requested_provider": requested_provider,
+        }
+
     pconfig = PROVIDER_REGISTRY.get(provider)
     if pconfig and pconfig.auth_type == "api_key":
         env_url = ""
@@ -679,6 +721,47 @@ def resolve_runtime_provider(
     )
     if explicit_runtime:
         return explicit_runtime
+
+    # ── Ollama provider fallback (if not handled in _resolve_explicit_runtime) ─────
+    if provider == "ollama":
+        # Try hosts from env, then defaults in priority order
+        ollama_hosts = os.getenv("OLLAMA_HOSTS", "").strip()
+        if ollama_hosts:
+            hosts = [h.strip() for h in ollama_hosts.split(",") if h.strip()]
+        else:
+            hosts = ["http://192.168.1.118:11434", "http://100.127.199.8:11434", "http://localhost:11434"]
+
+        for host in hosts:
+            base_url = host.rstrip("/")
+            if not base_url.startswith("http"):
+                base_url = f"http://{base_url}"
+            try:
+                import requests as _req
+                test_url = f"{base_url}/api/tags"
+                resp = _req.get(test_url, timeout=2)
+                if resp.status_code == 200:
+                    effective_base_url = f"{base_url}/v1"
+                    model_name = model_cfg.get("model", "").strip() or model_cfg.get("default", "").strip() or "gemma4:latest"
+                    return {
+                        "provider": "ollama",
+                        "api_mode": "chat_completions",
+                        "base_url": effective_base_url,
+                        "api_key": explicit_api_key or "ollama",
+                        "model": model_name,
+                        "source": "explicit",
+                        "requested_provider": requested_provider,
+                    }
+            except Exception:
+                continue
+        # No hosts available - return empty to trigger error later
+        return {
+            "provider": "ollama",
+            "api_mode": "chat_completions",
+            "base_url": "",
+            "api_key": "",
+            "source": "explicit",
+            "requested_provider": requested_provider,
+        }
 
     should_use_pool = provider != "openrouter"
     if provider == "openrouter":

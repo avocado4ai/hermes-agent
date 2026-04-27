@@ -1442,6 +1442,47 @@ def resolve_provider_client(
                        "but no endpoint credentials found")
         return None, None
 
+    # ── Ollama provider (local or remote) ───────────────────────────────────────
+    if provider == "ollama":
+        # Try hosts from config/env, then defaults
+        ollama_hosts = os.getenv("OLLAMA_HOSTS", "").strip()
+        if ollama_hosts:
+            hosts = [h.strip() for h in ollama_hosts.split(",") if h.strip()]
+        else:
+            hosts = ["http://192.168.1.118:11434", "http://100.127.199.8:11434", "http://localhost:11434"]
+
+        # Try each host until one works
+        for host in hosts:
+            base_url = host.rstrip("/")
+            if not base_url.startswith("http"):
+                base_url = f"http://{base_url}"
+            # Make a test request to check if the server is alive
+            try:
+                import requests as _req
+                test_url = f"{base_url}/api/tags"
+                resp = _req.get(test_url, timeout=2)
+                if resp.status_code == 200:
+                    # Server is available, create client
+                    final_model = _normalize_resolved_model(
+                        model or "gamma4:latest",
+                        provider,
+                    )
+                    # Use any dummy key - Ollama doesn't require auth
+                    client = OpenAI(api_key="ollama", base_url=f"{base_url}/v1")
+                    logger.debug(
+                        "resolve_provider_client: ollama connected to %s",
+                        base_url,
+                    )
+                    return (_to_async_client(client, final_model) if async_mode
+                            else (client, final_model))
+            except Exception as e:
+                logger.debug("resolve_provider_client: ollama host %s failed: %s", base_url, e)
+                continue
+
+        # No hosts available
+        logger.warning("resolve_provider_client: ollama requested but no hosts available")
+        return None, None
+
     # ── Named custom providers (config.yaml custom_providers list) ───
     try:
         from hermes_cli.runtime_provider import _get_named_custom_provider
