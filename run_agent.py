@@ -936,7 +936,7 @@ class AIAgent:
                     # but no credentials were found, fail fast with a clear
                     # message instead of silently routing through OpenRouter.
                     _explicit = (self.provider or "").strip().lower()
-                    if _explicit and _explicit not in ("auto", "openrouter", "custom"):
+                    if _explicit and _explicit not in ("auto", "openrouter", "custom", "ollama"):
                         raise RuntimeError(
                             f"Provider '{_explicit}' is set in config.yaml but no API key "
                             f"was found. Set the {_explicit.upper()}_API_KEY environment "

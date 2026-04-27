@@ -8,6 +8,13 @@ Instructions for AI coding assistants and developers working on the hermes-agent
 source venv/bin/activate  # ALWAYS activate before running Python
 ```
 
+**Setup with uv** (preferred over venv):
+```bash
+uv venv venv --python 3.11
+source venv/bin/activate
+uv pip install -e ".[all,dev]"
+```
+
 ## Project Structure
 
 ```
@@ -222,7 +229,7 @@ The registry handles schema collection, dispatch, availability checking, and err
 
 ### config.yaml options:
 1. Add to `DEFAULT_CONFIG` in `hermes_cli/config.py`
-2. Bump `_config_version` (currently 5) to trigger migration for existing users
+2. Bump `_config_version` (currently 17) to trigger migration for existing users
 
 ### .env variables:
 1. Add to `OPTIONAL_ENV_VARS` in `hermes_cli/config.py` with metadata:
@@ -460,11 +467,21 @@ def profile_env(tmp_path, monkeypatch):
 
 ```bash
 source venv/bin/activate
-python -m pytest tests/ -q          # Full suite (~3000 tests, ~3 min)
-python -m pytest tests/test_model_tools.py -q   # Toolset resolution
-python -m pytest tests/test_cli_init.py -q       # CLI config loading
-python -m pytest tests/gateway/ -q               # Gateway tests
-python -m pytest tests/tools/ -q                 # Tool-level tests
+python -m pytest tests/ -q                          # Full suite (~3000 tests, ~3 min)
+python -m pytest tests/ -q -m 'not integration'    # Skip integration tests
+python -m pytest tests/test_model_tools.py -q     # Toolset resolution
+python -m pytest tests/gateway/ -q                # Gateway tests
+python -m pytest tests/tools/ -q                  # Tool-level tests
 ```
 
-Always run the full suite before pushing changes.
+- Integration tests are marked with `@pytest.mark.integration` and excluded by default (`-m 'not integration'`)
+- E2E tests run separately: `python -m pytest tests/e2e/ -v`
+- Always run the full suite before pushing changes.
+
+## CI / Contributor Workflow
+
+**Contributor attribution check** (`.github/workflows/contributor-check.yml`): New contributor emails must be mapped in `scripts/release.py` `AUTHOR_MAP`. Unmapped emails will cause the PR check to fail with instructions on how to add the mapping.
+
+**Supply chain audit** (`.github/workflows/supply-chain-audit.yml`): Automatically scans PRs for suspicious patterns (`.pth` files, base64+exec, subprocess with encoded commands, etc.). Critical findings block the PR.
+
+**No formal lint/format CI**: This repo does not use ruff, black, isort, or mypy in CI. Code style is PEP 8 with practical exceptions.

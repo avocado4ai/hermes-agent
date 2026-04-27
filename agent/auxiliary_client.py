@@ -2340,7 +2340,7 @@ def call_llm(
             # credentials were found, fail fast instead of silently routing
             # through OpenRouter (which causes confusing 404s).
             _explicit = (resolved_provider or "").strip().lower()
-            if _explicit and _explicit not in ("auto", "openrouter", "custom"):
+            if _explicit and _explicit not in ("auto", "openrouter", "custom", "ollama"):
                 raise RuntimeError(
                     f"Provider '{_explicit}' is set in config.yaml but no API key "
                     f"was found. Set the {_explicit.upper()}_API_KEY environment "
@@ -2545,7 +2545,7 @@ async def async_call_llm(
         )
         if client is None:
             _explicit = (resolved_provider or "").strip().lower()
-            if _explicit and _explicit not in ("auto", "openrouter", "custom"):
+            if _explicit and _explicit not in ("auto", "openrouter", "custom", "ollama"):
                 raise RuntimeError(
                     f"Provider '{_explicit}' is set in config.yaml but no API key "
                     f"was found. Set the {_explicit.upper()}_API_KEY environment "
