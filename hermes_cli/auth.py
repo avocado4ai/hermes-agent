@@ -924,7 +924,7 @@ def resolve_provider(
         "qwen-portal": "qwen-oauth", "qwen-cli": "qwen-oauth", "qwen-oauth": "qwen-oauth",
         "hf": "huggingface", "hugging-face": "huggingface", "huggingface-hub": "huggingface",
         "mimo": "xiaomi", "xiaomi-mimo": "xiaomi",
-        "go": "opencode-go", "opencode-go-sub": "opencode-go",
+"go": "opencode-go", "opencode-go-sub": "opencode-go",
         "kilo": "kilocode", "kilo-code": "kilocode", "kilo-gateway": "kilocode",
         # Local server aliases — route through the generic custom provider
         "lmstudio": "custom", "lm-studio": "custom", "lm_studio": "custom",
@@ -937,6 +937,10 @@ def resolve_provider(
         return "openrouter"
     if normalized == "custom":
         return "custom"
+    if normalized == "ollama":
+        return "ollama"  # Special handling in runtime_provider
+    if normalized in PROVIDER_REGISTRY:
+        return normalized
     if normalized == "ollama":
         return "ollama"  # Special handling in runtime_provider
     if normalized in PROVIDER_REGISTRY:
