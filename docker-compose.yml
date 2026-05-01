@@ -38,6 +38,13 @@ services:
       - HERMES_EXTRA_PLATFORMS=api_server
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS}
+      # Microsoft Teams — uncomment and fill in to enable Teams gateway.
+      # Register your bot at https://dev.botframework.com/ to get these values.
+      # - TEAMS_CLIENT_ID=${TEAMS_CLIENT_ID}
+      # - TEAMS_CLIENT_SECRET=${TEAMS_CLIENT_SECRET}
+      # - TEAMS_TENANT_ID=${TEAMS_TENANT_ID}
+      # - TEAMS_ALLOWED_USERS=${TEAMS_ALLOWED_USERS}
+      # - TEAMS_PORT=${TEAMS_PORT:-3978}
     command: ["gateway", "run"]
 
   dashboard:
