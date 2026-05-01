@@ -275,15 +275,15 @@ If you see `Conflict: terminated by other getUpdates request`:
 ## Web Search with SearXNG
 
 ### Configuration
-SearXNG runs in a separate container (`searxng`) with `--network host`, listening on port `8080`.
-Both hermes-gateway and SearXNG share host networking, so `127.0.0.1:8080` works from any container.
+SearXNG runs in a separate container (`searxng`) with `--network host`, listening on port `4300`.
+Both hermes-gateway and SearXNG share host networking, so `127.0.0.1:4300` works from any container.
 
 **config.yaml:**
 ```yaml
 auxiliary:
   web_search:
     provider: searxng
-    base_url: 'http://127.0.0.1:8080'
+    base_url: 'http://127.0.0.1:4300'
     api_key: ''
     timeout: 30
     extra_body: {}
@@ -292,7 +292,7 @@ auxiliary:
 ### Start SearXNG
 ```bash
 docker run -d --name searxng --network host \
-  -e SEARXNG_BASE_URL=http://localhost:8080/ \
+  -e SEARXNG_BASE_URL=http://localhost:4300/ \
   searxng/searxng:latest
 
 # Enable JSON format (required once after first start)
@@ -310,7 +310,7 @@ docker restart searxng
 ### Test SearXNG
 ```bash
 # From host
-curl "http://127.0.0.1:8080/search?q=test&format=json" | python3 -m json.tool | head -20
+curl "http://127.0.0.1:4300/search?q=test&format=json" | python3 -m json.tool | head -20
 ```
 
 ### SearXNG Container
@@ -331,7 +331,7 @@ docker restart searxng
 |---------|-----------|---------|------|--------|
 | Gateway | `hermes-gateway` | host | - | ✅ Telegram connected |
 | Dashboard | `hermes-dashboard` | host | **9119** | ✅ `http://localhost:9119` |
-| SearXNG | `searxng` | host | 8080 | ✅ Web search |
+| SearXNG | `searxng` | host | 4300 | ✅ Web search |
 | Ollama | Remote | - | 192.168.1.118:11434 | ✅ `gemma4:latest` |
 | Telegram | Bot `@your_bot_name` | - | - | ✅ Connected |
 
